@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dev-Ready Login → Dashboard (Calculator + Games)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    :root{
+      --primary: #ff6600;
+      --bg: linear-gradient(#f5f7fb,#eef2f7);
+      --card: #fff;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 8px 30px rgba(2,6,23,.12);
+      --wallpaper-opacity: 0.25;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      color:var(--text);
+      background: var(--bg);
+      min-height:100vh;
+      display:block;
+    }
+    /* wallpaper layer */
+    .wallpaper {
+      position:fixed; inset:0; z-index:-2;
+      background-size:cover; background-position:center center;
+      filter: blur(0px); transition: filter .25s, opacity .25s;
+      opacity:var(--wallpaperOpacity, 1);
+    }
+    .wallpaper::after{
+      content:""; position:absolute; inset:0; background: rgba(0,0,0,var(--wallpaper-overlay,0)); pointer-events:none;
+    }
+
+    /* -------- LOGIN -------- */
+    #loginPage{ display:grid; place-items:center; min-height:100vh; padding:24px; }
+    .login-card{
+      width:360px; max-width:96vw;
+      background:var(--card); border-radius:16px; padding:34px; text-align:center;
+      box-shadow:var(--shadow); position:relative;
+    }
+    .avatar{ width:88px; height:88px; border-radius:50%; object-fit:cover; border:4px solid #fff; margin:-70px auto 10px; box-shadow:0 8px 26px rgba(0,0,0,.12); background:#eee; }
+    h1{ margin:6px 0 18px; font-size:20px; }
+    .input{ display:flex; align-items:center; gap:10px; border-bottom:1px solid #e6e9ef; padding:8px 6px; margin:12px 0; }
+    .input i{ color:var(--muted); width:22px; text-align:center; }
+    .input input{ border:0; outline:0; background:transparent; padding:8px 0; font-size:15px; width:100%; }
+    .error{ color:#dc2626; min-height:18px; font-size:13px; margin-top:6px; }
+    .btn{ width:100%; background:var(--primary); color:#fff; border:0; padding:12px 14px; border-radius:10px; cursor:pointer; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.12); }
+    .small { font-size:13px; color:var(--muted); margin-top:8px; }
+
+    /* dev fab & panel */
+    .dev-fab{ position:fixed; left:16px; bottom:16px; z-index:60; width:48px; height:48px; border-radius:999px; background:#111827; color:#fff; border:0; cursor:pointer; box-shadow:var(--shadow); }
+    .dev-panel{ position:fixed; left:16px; bottom:80px; z-index:61; width:320px; max-width:92vw; background:var(--card); padding:14px;border-radius:12px; box-shadow:var(--shadow); display:none; }
+    .dev-panel h4{ margin:0 0 8px; font-size:14px; }
+    .dev-row{ margin-bottom:10px; display:grid; gap:8px; }
+    .dev-row input[type=color], .dev-row input[type=file], .dev-row input[type=range] { width:100%; }
+
+    /* -------- DASHBOARD -------- */
+    #dashboardPage{ display:none; min-height:100vh; grid-template-rows:auto 1fr; }
+    header.appbar{ display:flex; justify-content:space-between; align-items:center; padding:12px 18px; background:#0f1724; color:#fff; position:sticky; top:0; z-index:40; }
+    .brand{ display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.3px; }
+    .logo{ width:36px; height:36px; border-radius:8px; background:var(--primary); display:grid; place-items:center; color:#fff; }
+    .profile-area{ display:flex; align-items:center; gap:10px; }
+    .profile-area img{ width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,.08); }
+    .name{ font-weight:600; }
+    .menu{ position:relative; }
+    .menu .btn{ background:transparent; color:#fff; border:0; font-size:20px; cursor:pointer; padding:6px; }
+    .menu-sheet{ position:absolute; right:0; top:44px; min-width:200px; background:#fff; color:#111; border-radius:10px; box-shadow:var(--shadow); display:none; overflow:hidden; z-index:50; }
+    .menu.open .menu-sheet{ display:block; }
+    .menu-sheet a{ display:flex; gap:10px; align-items:center; padding:10px 12px; text-decoration:none; color:inherit; cursor:pointer; }
+    .menu-sheet a:hover{ background:#f3f4f6; }
+
+    main{ padding:18px; }
+    #tiles{ display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); }
+    .tile{ background:var(--card); border-radius:14px; padding:16px; box-shadow:var(--shadow); display:grid; gap:8px; cursor:pointer; }
+    .t-top{ display:flex; gap:12px; align-items:center; }
+    .app-icon{ width:48px; height:48px; border-radius:10px; display:grid; place-items:center; background:rgba(15,23,36,0.06); font-size:20px; color:var(--primary); overflow:hidden; }
+    .tile h3{ margin:0; font-size:16px; }
+    .tile p{ margin:0; color:var(--muted); font-size:13px; }
+
+    /* sections */
+    .section{ display:none; }
+    .section.active{ display:block; }
+    .back{ display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:8px; background:#0f1724; color:#fff; border:0; cursor:pointer; margin-bottom:12px; }
+
+    /* calculator UI */
+    .calc-wrap{ max-width:420px; margin:0 auto; background:var(--card); padding:16px; border-radius:14px; box-shadow:var(--shadow); }
+    #calcDisplay{ width:100%; padding:12px; font-size:20px; border-radius:10px; border:1px solid #eef2f7; text-align:right; }
+    .calc-grid{ display:grid; grid-template-columns: repeat(4,1fr); gap:10px; margin-top:10px; }
+    .calc-grid button{ padding:12px; border:0; border-radius:10px; background:var(--primary); color:#fff; font-weight:600; cursor:pointer; }
+    .calc-grid .util{ background:#111827; }
+
+    /* games */
+    .game-wrap{ max-width:520px; margin:0 auto; background:var(--card); padding:12px; border-radius:14px; box-shadow:var(--shadow); text-align:center; }
+    canvas{ background:#eef2f7; border-radius:10px; display:block; margin:12px auto; }
+
+    /* profile modal */
+    .modal{ position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.45); z-index:80; visibility:hidden; opacity:0; transition:opacity .15s; }
+    .modal.open{ visibility:visible; opacity:1; }
+    .modal-card{ width:360px; max-width:92vw; background:var(--card); padding:16px; border-radius:12px; box-shadow:var(--shadow); }
+    .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+    .field input{ padding:10px; border-radius:8px; border:1px solid #eef2f7; }
+
+    /* small helpers */
+    .muted{ color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+
+  <!-- wallpaper -->
+  <div id="wall" class="wallpaper"></div>
+
+  <!-- LOGIN -->
+  <section id="loginPage">
+    <div class="login-card">
+      <img id="loginAvatar" class="avatar" src="https://via.placeholder.com/160" alt="avatar">
+      <h1>Welcome back</h1>
+
+      <div class="input"><i class="fa-regular fa-user"></i><input id="loginUser" placeholder="Username" autocomplete="username"></div>
+      <div class="input"><i class="fa-solid fa-lock"></i><input id="loginPass" type="password" placeholder="Password" autocomplete="current-password"></div>
+      <div id="loginError" class="error"></div>
+      <button id="btnLogin" class="btn">Sign in</button>
+      <div class="small">Default: <strong>admin</strong> / <strong>123</strong></div>
+    </div>
+
+    <!-- Dev Tools -->
+    <button id="devFab" class="dev-fab" title="Dev Tools"><i class="fa-solid fa-gear"></i></button>
+    <div id="devPanel" class="dev-panel" aria-hidden="true">
+      <h4>Developer Tools</h4>
+
+      <div class="dev-row">
+        <label>Primary color</label>
+        <input id="colorPick" type="color" value="#ff6600">
+      </div>
+
+      <div class="dev-row">
+        <label>Wallpaper image</label>
+        <input id="wallInput" type="file" accept="image/*">
+        <label><input id="blurToggle" type="checkbox"> Blur wallpaper</label>
+        <label>Overlay darkness <input id="overlayRange" type="range" min="0" max="70" value="0"></label>
+      </div>
+
+      <div class="dev-row">
+        <label>Profile photo</label>
+        <input id="profileInput" type="file" accept="image/*">
+      </div>
+
+      <div class="dev-row">
+        <label>App icon (used for tiles)</label>
+        <input id="appIconInput" type="file" accept="image/*">
+      </div>
+
+      <div class="dev-row">
+        <button id="resetBtn" class="btn" style="background:#111827">Reset defaults</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboardPage">
+    <header class="appbar">
+      <div class="brand"><div class="logo"><i class="fa-solid fa-fire"></i></div> <div>My Dashboard</div></div>
+      <div class="profile-area">
+        <div class="name" id="topName">Admin</div>
+        <img id="topAvatar" src="https://via.placeholder.com/160" alt="pfp">
+        <div class="menu" id="menuRoot">
+          <button class="btn" id="menuBtn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          <div class="menu-sheet" id="menuSheet" role="menu">
+            <a id="openProfile"><i class="fa-solid fa-user"></i> <span>Edit profile</span></a>
+            <a id="changeLogin"><i class="fa-solid fa-user-pen"></i> <span>Change username / password</span></a>
+            <a id="menuLogout"><i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span></a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div id="tiles">
+        <div class="tile" id="tileSnake">
+          <div class="t-top"><div class="app-icon" id="iconSnake"><i class="fa-solid fa-gamepad"></i></div><div><h3>Snake</h3><p class="muted">Classic grid game</p></div></div>
+        </div>
+
+        <div class="tile" id="tileTic">
+          <div class="t-top"><div class="app-icon" id="iconTic"><i class="fa-solid fa-chess-queen"></i></div><div><h3>Tic-Tac-Toe</h3><p class="muted">Play vs local player</p></div></div>
+        </div>
+
+        <div class="tile" id="tileCalc">
+          <div class="t-top"><div class="app-icon" id="iconCalc"><i class="fa-solid fa-calculator"></i></div><div><h3>Calculator</h3><p class="muted">Open calculator</p></div></div>
+        </div>
+      </div>
+
+      <!-- SNAKE SECTION -->
+      <section id="snakeSection" class="section">
+        <button class="back" data-back><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <div class="game-wrap">
+          <h2>Snake</h2>
+          <canvas id="snakeCanvas" width="320" height="320"></canvas>
+          <div class="muted">Use arrow keys to play</div>
+          <div style="margin-top:12px;"><button id="restartSnake" class="btn">Restart</button></div>
+        </div>
+      </section>
+
+      <!-- TIC TAC TOE SECTION -->
+      <section id="ticSection" class="section">
+        <button class="back" data-back><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <div class="game-wrap">
+          <h2>Tic-Tac-Toe</h2>
+          <div id="ticBoard" style="display:grid; grid-template-columns:repeat(3,100px); gap:8px; justify-content:center; margin:14px 0;"></div>
+          <div class="muted" id="ticStatus"></div>
+          <div style="margin-top:12px;"><button id="restartTic" class="btn">Restart</button></div>
+        </div>
+      </section>
+
+      <!-- CALCULATOR SECTION -->
+      <section id="calcSection" class="section">
+        <button class="back" data-back><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <div class="calc-wrap">
+          <h2>Calculator</h2>
+          <input id="calcDisplay" type="text" readonly />
+          <div class="calc-grid" style="margin-top:12px;">
+            <button class="util" data-val="C">C</button>
+            <button class="util" data-val="DEL">DEL</button>
+            <button data-val="/">÷</button>
+            <button data-val="*">×</button>
+
+            <button data-val="7">7</button>
+            <button data-val="8">8</button>
+            <button data-val="9">9</button>
+            <button data-val="-">-</button>
+
+            <button data-val="4">4</button>
+            <button data-val="5">5</button>
+            <button data-val="6">6</button>
+            <button data-val="+">+</button>
+
+            <button data-val="1">1</button>
+            <button data-val="2">2</button>
+            <button data-val="3">3</button>
+            <button class="util" data-val="=">=</button>
+
+            <button style="grid-column:span 2" data-val="0">0</button>
+            <button data-val=".">.</button>
+            <div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <!-- PROFILE MODAL -->
+  <div id="profileModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Edit Profile</h3>
+      <div class="field"><label>Display name</label><input id="profileName"></div>
+      <div class="field"><label>Profile photo</label><input id="profilePhotoFile" type="file" accept="image/*"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="closeProfile" class="btn" style="background:#111827">Cancel</button>
+        <button id="saveProfile" class="btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE LOGIN MODAL -->
+  <div id="loginModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Change Login</h3>
+      <div class="field"><label>New username</label><input id="newLoginUser"></div>
+      <div class="field"><label>New password</label><input id="newLoginPass" type="password"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="closeLoginModal" class="btn" style="background:#111827">Cancel</button>
+        <button id="saveLoginModal" class="btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // small helpers
+  const $ = (s, root=document) => root.querySelector(s);
+  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+
+  // local storage wrapper
+  const DB = {
+    key: 'devMiniApp_v1',
+    read(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch { return {}; } },
+    write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); },
+    get(k, fallback){ const d=this.read(); return (d[k]===undefined?fallback:d[k]); },
+    set(k,v){ const d=this.read(); d[k]=v; this.write(d); }
+  };
+
+  // DOM refs
+  const loginPage = $('#loginPage'), dashboardPage = $('#dashboardPage');
+  const btnLogin = $('#btnLogin'), loginUser = $('#loginUser'), loginPass = $('#loginPass'), loginError = $('#loginError');
+  const loginAvatar = $('#loginAvatar'), topAvatar = $('#topAvatar'), topName = $('#topName');
+  const devFab = $('#devFab'), devPanel = $('#devPanel'), colorPick = $('#colorPick'), wallInput = $('#wallInput'), profileInput = $('#profileInput'), appIconInput = $('#appIconInput'), resetBtn = $('#resetBtn'), wallEl = $('#wall'), blurToggle = $('#blurToggle'), overlayRange = $('#overlayRange');
+  const tiles = $('#tiles'), tileSnake = $('#tileSnake'), tileTic = $('#tileTic'), tileCalc = $('#tileCalc');
+  const sections = $$('.section');
+  const backBtns = $$('[data-back]');
+  const menuRoot = $('#menuRoot'), menuBtn = $('#menuBtn'), menuSheet = $('#menuSheet');
+  const profileModal = $('#profileModal'), closeProfile = $('#closeProfile'), saveProfile = $('#saveProfile'), profileName = $('#profileName'), profilePhotoFile = $('#profilePhotoFile');
+  const loginModal = $('#loginModal'), closeLoginModal = $('#closeLoginModal'), saveLoginModal = $('#saveLoginModal'), newLoginUser = $('#newLoginUser'), newLoginPass = $('#newLoginPass');
+
+  // init defaults
+  const DEFAULT_USER = 'admin', DEFAULT_PASS = '123';
+  if(DB.get('loginUser') === undefined) DB.set('loginUser', DEFAULT_USER);
+  if(DB.get('loginPass') === undefined) DB.set('loginPass', DEFAULT_PASS);
+
+  // apply branding if present
+  function applyBranding(){
+    const primary = DB.get('primary', '#ff6600'); document.documentElement.style.setProperty('--primary', primary);
+    colorPick.value = primary;
+    const wall = DB.get('wall', null);
+    if(wall){ wallEl.style.backgroundImage = `url(${wall})`; wallEl.style.opacity = DB.get('wallOpacity', 1); }
+    else { wallEl.style.backgroundImage = ''; }
+    if(DB.get('avatar')){ loginAvatar.src = DB.get('avatar'); topAvatar.src = DB.get('avatar'); }
+    topName.textContent = DB.get('displayName', DB.get('loginUser', DEFAULT_USER));
+    // app icon apply
+    const icon = DB.get('appIcon', null);
+    if(icon){
+      $('#iconSnake').style.backgroundImage = `url(${icon})`; $('#iconSnake').style.backgroundSize = 'cover';
+      $('#iconTic').style.backgroundImage = `url(${icon})`; $('#iconTic').style.backgroundSize = 'cover';
+      $('#iconCalc').style.backgroundImage = `url(${icon})`; $('#iconCalc').style.backgroundSize = 'cover';
+      // hide inner <i> icons
+      $$('#iconSnake i, #iconTic i, #iconCalc i').forEach(i=>i.style.opacity=0);
+    }
+    // wallpaper blur and overlay
+    if(DB.get('wallBlur')) wallEl.style.filter = 'blur(6px)'; else wallEl.style.filter = 'blur(0px)';
+    const overlay = DB.get('wallOverlay') || 0; document.documentElement.style.setProperty('--wallpaper-overlay', overlay/100);
+  }
+  applyBranding();
+
+  // dev panel interactions
+  devFab.addEventListener('click', ()=> devPanel.style.display = devPanel.style.display === 'block' ? 'none' : 'block');
+  document.addEventListener('click', e=>{ if(!devPanel.contains(e.target) && e.target !== devFab) devPanel.style.display = 'none'; });
+
+  colorPick.addEventListener('input', e=>{ DB.set('primary', e.target.value); document.documentElement.style.setProperty('--primary', e.target.value); });
+  blurToggle.addEventListener('change', e=>{ DB.set('wallBlur', e.target.checked); applyBranding(); });
+  overlayRange.addEventListener('input', e=>{ DB.set('wallOverlay', e.target.value); applyBranding(); });
+
+  // file to base64
+  function fileToBase64(file){ return new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+
+  wallInput.addEventListener('change', async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const data = await fileToBase64(f);
+    DB.set('wall', data); DB.set('wallOpacity', 1); applyBranding();
+  });
+  profileInput.addEventListener('change', async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const data = await fileToBase64(f);
+    DB.set('avatar', data); loginAvatar.src = data; topAvatar.src = data;
+  });
+  appIconInput.addEventListener('change', async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const data = await fileToBase64(f);
+    DB.set('appIcon', data); applyBranding();
+  });
+  resetBtn.addEventListener('click', ()=>{
+    localStorage.removeItem(DB.key); location.reload();
+  });
+
+  // ---------- AUTH ----------
+  function showLoginError(msg){ loginError.textContent = msg || ''; }
+  function tryLogin(){
+    const u = loginUser.value.trim(), p = loginPass.value;
+    if(!u || !p){ showLoginError('Enter username & password'); return; }
+    const savedU = DB.get('loginUser', DEFAULT_USER), savedP = DB.get('loginPass', DEFAULT_PASS);
+    // CODE CHECK: verify credentials
+    if(u === savedU && p === savedP){
+      DB.set('loggedIn', true); DB.set('displayName', DB.get('displayName', savedU));
+      goDashboard(u);
+    } else {
+      showLoginError('Invalid username or password');
+    }
+  }
+  btnLogin.addEventListener('click', tryLogin);
+  [loginUser, loginPass].forEach(el => el.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); }));
+
+  // auto auto-login?
+  if(DB.get('loggedIn')) goDashboard(DB.get('loginUser', DEFAULT_USER));
+
+  function goDashboard(name){
+    loginPage.style.display = 'none'; dashboardPage.style.display = 'block';
+    topName.textContent = DB.get('displayName', name || DB.get('loginUser', DEFAULT_USER));
+    if(DB.get('avatar')){ topAvatar.src = DB.get('avatar'); loginAvatar.src = DB.get('avatar'); }
+    applyBranding();
+    showTiles();
+      }
+
+  // ---------- MENU ----------
+  menuBtn.addEventListener('click', e=>{ e.stopPropagation(); menuRoot.classList.toggle('open'); });
+  document.addEventListener('click', ()=> menuRoot.classList.remove('open'));
+  $('#menuLogout').addEventListener('click', ()=>{ DB.set('loggedIn', false); dashboardPage.style.display='none'; loginPage.style.display='block'; });
+
+  // profile modal
+  $('#openProfile').addEventListener('click', ()=>{
+    profileModal.classList.add('open'); profileModal.removeAttribute('aria-hidden');
+    profileName.value = DB.get('displayName', DB.get('loginUser', DEFAULT_USER));
+  });
+  closeProfile.addEventListener('click', ()=>{ profileModal.classList.remove('open'); });
+  saveProfile.addEventListener('click', async ()=>{
+    const name = profileName.value.trim(); if(!name){ alert('Enter a display name'); return; }
+    DB.set('displayName', name); topName.textContent = name;
+    // if a file chosen, upload it
+    const f = profilePhotoFile.files[0];
+    if(f){ const data = await fileToBase64(f); DB.set('avatar', data); loginAvatar.src = data; topAvatar.src = data; }
+    profileModal.classList.remove('open');
+  });
+
+  // change login info
+  $('#changeLogin').addEventListener('click', ()=> {
+    loginModal.classList.add('open'); loginModal.removeAttribute('aria-hidden');
+    newLoginUser.value = DB.get('loginUser', DEFAULT_USER);
+    newLoginPass.value = '';
+  });
+  closeLoginModal.addEventListener('click', ()=> loginModal.classList.remove('open'));
+  saveLoginModal.addEventListener('click', ()=> {
+    const nu = newLoginUser.value.trim(); const np = newLoginPass.value;
+    if(!nu || !np){ alert('Both required'); return; }
+    DB.set('loginUser', nu); DB.set('loginPass', np);
+    alert('Saved. New credentials will be used next login.');
+    DB.set('displayName', nu);
+    topName.textContent = nu;
+    loginModal.classList.remove('open');
+  });
+
+  // ---------- NAV: tiles → sections ----------
+  function hideAllSections(){ sections.forEach(s=>s.classList.remove('active')); }
+  function showTiles(){ $('#tiles').style.display='grid'; hideAllSections(); stopSnake(); }
+  backBtns.forEach(b=>b.addEventListener('click', showTiles));
+
+  tileSnake.addEventListener('click', ()=>{ $('#tiles').style.display='none'; $('#snakeSection').classList.add('active'); startSnake(); });
+  tileTic.addEventListener('click', ()=>{ $('#tiles').style.display='none'; $('#ticSection').classList.add('active'); startTic(); });
+  tileCalc.addEventListener('click', ()=>{ $('#tiles').style.display='none'; $('#calcSection').classList.add('active'); });
+
+  // ---------- CALCULATOR ----------
+  const calcDisplay = $('#calcDisplay');
+  $('.calc-grid').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return; const v = b.dataset.val;
+    if(!v) return;
+    if(v === 'C'){ calcDisplay.value = ''; return; }
+    if(v === 'DEL'){ calcDisplay.value = calcDisplay.value.slice(0,-1); return; }
+    if(v === '='){ try{ calcDisplay.value = String(Function('"use strict";return (' + (calcDisplay.value||'0') + ')')()); } catch { calcDisplay.value='Error'; } return; }
+    calcDisplay.value += v;
+  });
+
+  // ---------- SNAKE ----------
+  const canvas = $('#snakeCanvas'); const ctx = canvas.getContext('2d');
+  const SIZE = 320, CELL = 16;
+  let snake = [], dir = 'RIGHT', food = {x:0,y:0}, snakeTimer = null;
+  function rnd(){ return Math.floor(Math.random()*(SIZE/CELL)) * CELL; }
+  function startSnake(){
+    stopSnake();
+    snake = [{x:5*CELL,y:5*CELL}]; dir='RIGHT'; food={x:rnd(),y:rnd()};
+    drawSnake(); snakeTimer = setInterval(stepSnake, 100); window.addEventListener('keydown', snakeKey);
+  }
+  function stopSnake(){ if(snakeTimer) clearInterval(snakeTimer); snakeTimer=null; window.removeEventListener('keydown', snakeKey); }
+  function snakeKey(e){ if(e.key==='ArrowLeft' && dir!=='RIGHT') dir='LEFT'; else if(e.key==='ArrowUp' && dir!=='DOWN') dir='UP'; else if(e.key==='ArrowRight' && dir!=='LEFT') dir='RIGHT'; else if(e.key==='ArrowDown' && dir!=='UP') dir='DOWN'; }
+  function stepSnake(){
+    const head = {...snake[0]};
+    if(dir==='LEFT') head.x -= CELL; if(dir==='RIGHT') head.x += CELL; if(dir==='UP') head.y -= CELL; if(dir==='DOWN') head.y += CELL;
+    if(head.x<0 || head.y<0 || head.x>=SIZE || head.y>=SIZE || snake.some((s,i)=>i!==0 && s.x===head.x && s.y===head.y)){ stopSnake(); flashCanvas(); return; }
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){ food={x:rnd(),y:rnd()}; } else { snake.pop(); }
+    drawSnake();
+  }
+  function drawSnake(){
+    ctx.clearRect(0,0,SIZE,SIZE);
+    ctx.fillStyle = '#eef2f7'; ctx.fillRect(0,0,SIZE,SIZE);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(food.x, food.y, CELL, CELL);
+    snake.forEach((s,i)=>{ ctx.fillStyle = i===0? '#10b981' : '#fff'; ctx.fillRect(s.x,s.y,CELL,CELL); ctx.strokeStyle='#111'; ctx.strokeRect(s.x,s.y,CELL,CELL); });
+  }
+  function flashCanvas(){ const old = canvas.style.boxShadow; canvas.style.boxShadow='0 0 0 6px #ef4444 inset'; setTimeout(()=>canvas.style.boxShadow=old,300); }
+  $('#restartSnake').addEventListener('click', startSnake);
+
+  // ---------- TIC-TAC-TOE ----------
+  const ticBoard = $('#ticBoard'), ticStatus = $('#ticStatus'); let board = [], current = 'X', ticOver=false;
+  function startTic(){
+    board = Array(9).fill(''); current='X'; ticOver=false; ticStatus.textContent = `Turn: ${current}`;
+    ticBoard.innerHTML = '';
+    for(let i=0;i<9;i++){
+      const btn = document.createElement('button'); btn.style.width='100px'; btn.style.height='100px'; btn.style.fontSize='28px'; btn.style.borderRadius='10px';
+      btn.style.border='1px solid #e6e9ef'; btn.dataset.i = i;
+      btn.addEventListener('click', ticClick);
+      ticBoard.appendChild(btn);
+    }
+  }
+  function ticClick(e){
+    if(ticOver) return;
+    const i = +e.currentTarget.dataset.i; if(board[i]) return;
+    board[i]=current; e.currentTarget.textContent = current;
+    if(checkWin(board, current)){ ticOver=true; ticStatus.textContent = `${current} wins!`; return; }
+    if(board.every(Boolean)){ ticOver=true; ticStatus.textContent = `Draw`; return; }
+    current = current === 'X' ? 'O' : 'X'; ticStatus.textContent = `Turn: ${current}`;
+  }
+  function checkWin(b, p){
+    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    return lines.some(l=> l.every(i=> b[i]===p));
+  }
+  $('#restartTic').addEventListener('click', startTic);
+
+  // ---------- initial UI ----------
+  applyBranding();
+
+  // START: show login or dashboard
+  if(DB.get('loggedIn')) goDashboard(DB.get('loginUser', DEFAULT_USER));
+  else { loginPage.style.display='grid'; dashboardPage.style.display='none'; }
+
+  // show tiles on load
+  function showTiles(){ $('#tiles').style.display='grid'; hideAllSections(); }
+  function hideAllSections(){ sections.forEach(s=>s.classList.remove('active')); }
+
+  // close sections back
+  backBtns.forEach(b=> b.addEventListener('click', ()=>{ showTiles(); }));
+
+  // small safety: stop games when leaving
+  window.addEventListener('beforeunload', ()=>{ stopSnake(); });
+
+  // accessibility hint: keyboard actions
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ // if modal open close
+    if(profileModal.classList.contains('open')) profileModal.classList.remove('open');
+    if(loginModal.classList.contains('open')) loginModal.classList.remove('open');
+  }});
+
+</script>
+</body>
+</html>
