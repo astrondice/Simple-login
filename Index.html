@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login App Suite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; background: #222; color: #fafafa; margin:0; }
+    .container { max-width: 400px; margin: 40px auto; background: #2d2d2d; border-radius: 10px; box-shadow: 0 0 10px #000a; padding: 32px 24px; }
+    h2 { text-align: center; margin-bottom: 20px; }
+    input[type="text"], input[type="password"] {
+      width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 5px; border: none; background: #444; color: #fff;
+    }
+    button, .btn { background: #0066ee; color: #fff; border: none; border-radius: 5px; padding: 10px 16px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+    button:hover, .btn:hover { background: #0054bb; }
+    .link-btn { background: none; color: #eee; border: none; text-decoration: underline; cursor: pointer; }
+    .profile-photo { width:60px; height:60px; border-radius:50%; margin: 10px auto 20px; display:block; }
+    .section { margin-top: 24px; }
+    .apps { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .app-link { background: #333; color: #fff; padding: 12px; border-radius: 8px; margin:8px; cursor:pointer; flex:1 1 45%; text-align:center; }
+    #snake-board { width: 200px; height: 200px; background: #000; display: block; margin:20px auto; }
+    #tictactoe-board { display: grid; grid-template-columns: repeat(3,60px); width: 180px; gap: 5px; margin:20px auto; }
+    .ttt-cell { width:60px; height:60px; background:#555; font-size:2em; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+    #calculator { max-width: 220px; margin: 24px auto; background: #1a1a1a; border-radius: 8px; padding: 12px; }
+    #calc-display { background: #222; color: white; font-size: 1.2em; text-align: right; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+    .calc-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;}
+    .calc-btns button { padding:16px; font-size:1em;}
+    .hide { display:none; }
+    .center { text-align:center;}
+  </style>
+</head>
+<body>
+  <div class="container" id="login-section">
+    <h2>Sign in</h2>
+    <form id="login-form" autocomplete="off">
+      <label>Username:</label>
+      <input type="text" id="username" placeholder="admin" required>
+      <label>Password:</label>
+      <input type="password" id="password" placeholder="123" required>
+      <button type="submit">Sign in</button>
+    </form>
+    <div class="section center">
+      <button class="link-btn" onclick="showSection('edit-profile-section')">Edit Profile</button>
+    </div>
+  </div>
+
+  <div class="container hide" id="profile-section">
+    <img src="https://i.imgur.com/3vTZ1sQ.png" id="profile-img" class="profile-photo">
+    <h2 id="profile-name">admin</h2>
+    <div class="apps">
+      <span class="app-link" onclick="showSection('snake-section')">Snake</span>
+      <span class="app-link" onclick="showSection('tictactoe-section')">Tic-Tac-Toe</span>
+      <span class="app-link" onclick="showSection('calculator-section')">Calculator</span>
+    </div>
+    <div class="section center">
+      <button onclick="logout()">Back</button>
+    </div>
+  </div>
+
+  <!-- Snake Game -->
+  <div class="container hide" id="snake-section">
+    <h2>Snake</h2>
+    <canvas id="snake-board" width="200" height="200"></canvas>
+    <div class="center">
+      <button onclick="restartSnake()">Restart</button>
+      <button onclick="showSection('profile-section')">Back</button>
+    </div>
+  </div>
+
+  <!-- Tic-Tac-Toe -->
+  <div class="container hide" id="tictactoe-section">
+    <h2>Tic-Tac-Toe</h2>
+    <div id="tictactoe-board"></div>
+    <div class="center">
+      <button onclick="initTicTacToe()">Restart</button>
+      <button onclick="showSection('profile-section')">Back</button>
+    </div>
+  </div>
+
+  <!-- Calculator -->
+  <div class="container hide" id="calculator-section">
+    <h2>Calculator</h2>
+    <div id="calculator">
+      <div id="calc-display">0</div>
+      <div class="calc-btns">
+        <button onclick="calcInput('C')">C</button>
+        <button onclick="calcInput('DEL')">DEL</button>
+        <button onclick="calcInput('%')">%</button>
+        <button onclick="calcInput('/')">÷</button>
+
+        <button onclick="calcInput('7')">7</button>
+        <button onclick="calcInput('8')">8</button>
+        <button onclick="calcInput('9')">9</button>
+        <button onclick="calcInput('*')">×</button> 
+
+        <button onclick="calcInput('4')">4</button>
+        <button onclick="calcInput('5')">5</button>
+        <button onclick="calcInput('6')">6</button>
+        <button onclick="calcInput('-')">-</button>
+
+        <button onclick="calcInput('1')">1</button>
+        <button onclick="calcInput('2')">2</button>
+        <button onclick="calcInput('3')">3</button>
+        <button onclick="calcInput('+')">+</button>
+
+        <button style="grid-column: 1 / span 2;" onclick="calcInput('0')">0</button>
+        <button onclick="calcInput('.')">.</button>
+        <button onclick="calcInput('=')">=</button>
+      </div>
+    </div>
+    <div class="center" style="margin-top:14px;">
+      <button onclick="showSection('profile-section')">Back</button>
+    </div>
+  </div>
+
+  <!-- Edit Profile -->
+  <div class="container hide" id="edit-profile-section">
+    <h2>Edit Profile</h2>
+    <label>Display name</label>
+    <input type="text" id="edit-name" placeholder="Enter new name">
+    <label>Profile photo URL</label>
+    <input type="text" id="edit-photo" placeholder="Image link">
+    <div class="center section">
+      <button onclick="saveProfile()">Save</button>
+      <button onclick="showSection('login-section')">Cancel</button>
+    </div>
+    <hr>
+    <h3>Change Login</h3>
+    <label>New username</label>
+    <input type="text" id="edit-username" placeholder="New username">
+    <label>New password</label>
+    <input type="password" id="edit-password" placeholder="New password">
+    <div class="center section">
+      <button onclick="saveLogin()">Save</button>
+      <button onclick="showSection('login-section')">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    let currentUser = localStorage.getItem('username') || 'admin';
+    let currentPass = localStorage.getItem('password') || '123';
+    let displayName = localStorage.getItem('displayName') || currentUser;
+    let profileImg = localStorage.getItem('profileImg') || 'https://i.imgur.com/3vTZ1sQ.png';
+
+    // --- Section Management ---
+    function showSection(id) {
+      document.querySelectorAll('.container').forEach(c => c.classList.add('hide'));
+      document.getElementById(id).classList.remove('hide');
+      if(id === 'profile-section') updateProfile();
+    }
+    function logout() { showSection('login-section'); }
+
+    // --- Login Logic ---
+    document.getElementById('login-form').onsubmit = function(e){
+      e.preventDefault();
+      let u = document.getElementById('username').value.trim();
+      let p = document.getElementById('password').value;
+      if(u === currentUser && p === currentPass) {
+        showSection('profile-section');
+      } else {
+        alert('Invalid login!');
+      }
+    };
+
+    // --- Profile ---
+    function updateProfile() {
+      document.getElementById('profile-img').src = profileImg;
+      document.getElementById('profile-name').textContent = displayName;
+    }
+
+    // --- Profile Editing ---
+    function saveProfile() {
+      let n = document.getElementById('edit-name').value.trim();
+      let p = document.getElementById('edit-photo').value.trim();
+      if(n) { displayName = n; localStorage.setItem('displayName', n);}
+      if(p) { profileImg = p; localStorage.setItem('profileImg', p);}
+      alert('Profile updated!');
+      showSection('profile-section');
+    }
+    function saveLogin() {
+      let u = document.getElementById('edit-username').value.trim();
+      let p = document.getElementById('edit-password').value;
+      if(u) { currentUser = u; localStorage.setItem('username', u);}
+      if(p) { currentPass = p; localStorage.setItem('password', p);}
+      alert('Login details updated!');
+      showSection('login-section');
+    }
+
+    // --- Snake Game ---
+    const snakeBoard = document.getElementById("snake-board");
+    const sctx = snakeBoard.getContext("2d");
+    let snake, food, dx, dy, snTimer;
+    function startSnake() {
+      snake = [{x:100, y:100}];
+      dx = 20; dy = 0;
+      food = {x: 60, y: 100};
+      if(snTimer) clearInterval(snTimer);
+      snTimer = setInterval(moveSnake, 130);
+      document.onkeydown = function(e){
+        switch(e.key){
+          case "ArrowUp": if(dy==0){dx=0;dy=-20;} break;
+          case "ArrowDown": if(dy==0){dx=0;dy=20;} break;
+          case "ArrowLeft": if(dx==0){dy=0;dx=-20;} break;
+          case "ArrowRight": if(dx==0){dy=0;dx=20;} break;
+        }
+      };
+    }
+    function moveSnake() {
+      let head = {x: snake[0].x+dx, y: snake[0].y+dy};
+      if(head.x<0||head.x>180||head.y<0||head.y>180||snake.some(seg=>seg.x==head.x&&seg.y==head.y)) {
+        alert("Game Over! Score: " + (snake.length-1)); startSnake(); return;
+      }
+      snake.unshift(head);
+      if(head.x==food.x&&head.y==food.y){
+        food.x = Math.floor(Math.random()*10)*20;
+        food.y = Math.floor(Math.random()*10)*20;
+      } else {
+        snake.pop();
+      }
+      drawSnake();
+    }
+    function drawSnake() {
+      sctx.fillStyle="#000"; sctx.fillRect(0,0,200,200);
+      sctx.fillStyle="lime";
+      snake.forEach(seg=>sctx.fillRect(seg.x, seg.y, 20,20));
+      sctx.fillStyle="red";
+      sctx.fillRect(food.x, food.y, 20,20);
+    }
+    function restartSnake(){startSnake();}
+    // Initialize the snake when entering the section
+    document.getElementById('snake-section').addEventListener('transitionstart',startSnake);
+
+    // --- Tic Tac Toe ---
+    let tic, turn, win;
+    function initTicTacToe() {
+      tic = Array(9).fill(''); turn = 'X'; win = false;
+      drawTicTacToe();
+    }
+    function drawTicTacToe() {
+      let brd = document.getElementById('tictactoe-board');
+      brd.innerHTML = '';
+      tic.forEach((cell, i) => {
+        let d = document.createElement('div');
+        d.className = 'ttt-cell';
+        d.textContent = cell;
+        d.onclick = ()=>tictactoeMove(i);
+        brd.appendChild(d);
+      });
+    }
+    function tictactoeMove(idx) {
+      if(win || tic[idx]) return;
+      tic[idx]=turn; 
+      if(checkWin()){
+        win = true; setTimeout(()=>alert(turn+' wins!'),10);
+      } else if(tic.every(v=>v)) {
+        win = true; setTimeout(()=>alert("Draw!"),10);
+      }
+      turn = turn=='X'?'O':'X';
+      drawTicTacToe();
+    }
+    function checkWin() {
+      const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      return wins.some(a=>tic[a[0]]&&tic[a[0]]==tic[a[1]]&&tic[a[1]]==tic[a[2]]);
+    }
+    // Initialize Tic Tac Toe on section show
+    document.getElementById('tictactoe-section').addEventListener('transitionstart',initTicTacToe);
+
+    // --- Calculator ---
+    let calcExp = '';
+    function calcInput(val) {
+      if(val==='C'){ calcExp='';}
+      else if(val==='DEL'){calcExp=calcExp.slice(0,-1);}
+      else if(val==='='){
+        try{
+          calcExp = eval(calcExp.replace(/[^0-9+\-*/%.]/g,'')).toString();
+        }catch{calcExp='Err';}
+      }
+      else{calcExp+=val;}
+      document.getElementById('calc-display').textContent=calcExp||'0';
+    }
+
+    // --- Auto Initialize on Load ---
+    window.onload = function() {
+      updateProfile();
+      showSection('login-section');
+    };
+  </script>
+</body>
+</html>
